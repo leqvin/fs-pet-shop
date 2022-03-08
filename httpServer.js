@@ -7,7 +7,14 @@ var petsPath = path.join(__dirname, 'pets.json');
 var http = require('http');
 var port = process.env.PORT || 8000;
 
-const petRegExp = /^\/pets\/(\d*)$/;
+const petRegExp = /^\/pets\/(\d+)$/;
+
+function readPetsFile(callback){
+    fs.readFile(petsPath, 'utf8', function(err, petsJSON) {
+        if (err) callback(err);
+        callback(null, JSON.parse(petsJSON))
+      });
+}
 
 var server = http.createServer(function(req, res) {
   if (req.method === "GET" && petRegExp.test(req.url)){
@@ -33,30 +40,38 @@ var server = http.createServer(function(req, res) {
         }
       });
   }  
-  else if (req.method === 'GET' && req.url === '/pets') {
-    fs.readFile(petsPath, 'utf8', function(err, petsJSON) {
-      if (err) {
-        console.error(err.stack);
-        res.statusCode = 500;
-        res.setHeader('Content-Type', 'text/plain');
-        return res.end('Error Reading File');
-      } else{
-        res.setHeader('Content-Type', 'application/json');
-        res.write(petsJSON)
-        res.end();
-      }
-    });
+  else if (req.method === 'GET' && /^\/pets\/?$/.test(req.url)) {
+    readPetsFile((err, petsJSON) => {
+        if (err) {
+            console.error(err.stack);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'text/plain');
+            return res.end('Error Reading File');
+        } else{
+            res.setHeader('Content-Type', 'application/json');
+            res.write(JSON.stringify(petsJSON))
+            res.end();
+        }  
+    })
+    // fs.readFile(petsPath, 'utf8', function(err, petsJSON) {
+    //   if (err) {
+    //     console.error(err.stack);
+    //     res.statusCode = 500;
+    //     res.setHeader('Content-Type', 'text/plain');
+    //     return res.end('Error Reading File');
+    //   } else{
+    //     res.setHeader('Content-Type', 'application/json');
+    //     res.write(petsJSON)
+    //     res.end();
+    //   }
+    // });
   }   
+
   else if (req.method === 'POST' && req.url === '/pets') {
-    var body = "";
+    let body = "";
     req.on('data', function (chunk) {
         body += chunk;
       });
-    // req.on('end', function () {
-    //     console.log('POSTed: ' + body);
-    //     res.writeHead(200);
-    //     res.end();
-    // });
     fs.readFile(petsPath, 'utf8', function(err, petsJSON) {
       if (err) {
         console.error(err.stack);
@@ -68,7 +83,6 @@ var server = http.createServer(function(req, res) {
         let pets = JSON.parse(petsJSON);
         let bodyJSON = JSON.parse(body)
 
-         
         if(typeof(bodyJSON.age) === "number" && neededKeys.every(key => Object.keys(bodyJSON).includes(key))){
             let newPet = {}
             newPet.age = bodyJSON.age;
@@ -92,13 +106,7 @@ var server = http.createServer(function(req, res) {
             res.write('Bad Request')
             res.end();
         }
-        
       }
-      req.on('end', function () {
-        console.log('POSTed: ' + body);
-        res.writeHead(200);
-        res.end();
-    });
     });
   }
   else {
@@ -114,3 +122,5 @@ server.listen(port, function() {
 });
 
 module.exports = server
+
+
