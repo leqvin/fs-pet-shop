@@ -48,10 +48,9 @@ app.route('/pets/:petIndex?')
             let ageIntBool = typeof(req.body.age) === "number"
             let keysPresentBool = requiredKeys.every(key => Object.keys(req.body).includes(key))
             if(isNaN(petIndex) && ageIntBool && keysPresentBool){
-                let newPet = {};
-                newPet.age = req.body.age;
-                newPet.kind = req.body.kind;
-                newPet.name = req.body.name;
+                let {age, kind, name} = req.body;
+                let newPet = {age, kind, name};
+
                 petsJSON.push(newPet);
                 let petsJSONstr = JSON.stringify(petsJSON);
 
@@ -61,7 +60,7 @@ app.route('/pets/:petIndex?')
                     console.error(err)
                     serverErrorHandler (err, res)
                 }
-                res.send(newPet);
+                res.status(201).send(newPet);
             } else {
                 res.status(400).send('Bad Request');
             }
